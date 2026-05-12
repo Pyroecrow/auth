@@ -35,7 +35,6 @@ const register = async (req, res) => {
             id: result.insertId,
             username: Username,
             Password: hashedPassword,
-            HashedPassword: hashedPassword,
             role: Role
         });
 
@@ -48,7 +47,28 @@ const register = async (req, res) => {
 
 
 const login = async (req, res) => {
-    res.send("login user")
+    const { Username, Password } = req.body;
+
+
+    try {
+        const [results] = await pool.query('select * from users where Username = ?', [Username]);
+
+        const user = results[0];
+
+        // Check if user exists and password is correct
+        if (!user || !(await bcrypt.compare(Password, user.Password))) {
+            return res.status(401).json({ message: 'Invalid username or password' });
+        }
+
+
+        // Generate JWT token
+        const token = jwt.sign({ username: user.Username, role: user.Role }, Secret_Key, { expiresIn: '1h' });
+        res.json({ token });
+
+
+    } catch (error) {
+        res.status(500).json({ error: 'Internal server error' });
+    }
 }
 
 
